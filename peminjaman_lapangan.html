@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistem Peminjaman Lapangan</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 { text-align: center; }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin: 6px 0;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    #app { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Login</h2>
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <div id="loginStatus"></div>
+</div>
+
+<br>
+
+<div class="container" id="app">
+  <h2>Peminjaman Lapangan</h2>
+
+  <input type="text" id="nama" placeholder="Nama Peminjam">
+
+  <select id="lapangan">
+    <option value="Lapangan A">Lapangan A</option>
+    <option value="Lapangan B">Lapangan B</option>
+  </select>
+
+  <input type="date" id="tanggal">
+  <input type="time" id="jam">
+
+  <button onclick="ajukan()">Ajukan Peminjaman</button>
+  <div id="pesan"></div>
+
+  <h3>Jadwal Peminjaman</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Nama</th>
+        <th>Lapangan</th>
+        <th>Tanggal</th>
+        <th>Jam</th>
+      </tr>
+    </thead>
+    <tbody id="jadwal"></tbody>
+  </table>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "API_KEY_KAMU",
+    authDomain: "PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId: "PROJECT_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  let currentUser = null;
+
+  db.ref("peminjaman").on("value", snapshot => tampilkan(snapshot));
+
+  function login() {
+    const user = username.value;
+    const pass = password.value;
+    const status = loginStatus;
+
+    if (user === "user" && pass === "1234") {
+      currentUser = user;
+      app.style.display = "block";
+      status.textContent = "Login berhasil";
+      status.className = "success";
+    } else {
+      status.textContent = "Username atau password salah";
+      status.className = "error";
+    }
+  }
+
+  function ajukan() {
+    if (!nama.value || !tanggal.value || !jam.value) {
+      pesan.textContent = "Data harus lengkap";
+      pesan.className = "error";
+      return;
+    }
+
+    db.ref("peminjaman").once("value", snapshot => {
+      let bentrok = false;
+      snapshot.forEach(data => {
+        const d = data.val();
+        if (d.lapangan === lapangan.value &&
+            d.tanggal === tanggal.value &&
+            d.jam === jam.value) bentrok = true;
+      });
+
+      if (bentrok) {
+        pesan.textContent = "Jadwal sudah dipakai!";
+        pesan.className = "error";
+      } else {
+        db.ref("peminjaman").push({
+          username: currentUser,
+          namaPeminjam: nama.value,
+          lapangan: lapangan.value,
+          tanggal: tanggal.value,
+          jam: jam.value
+        });
+        pesan.textContent = "Peminjaman berhasil";
+        pesan.className = "success";
+      }
+    });
+  }
+
+  function tampilkan(snapshot) {
+    jadwal.innerHTML = "";
+    snapshot.forEach(data => {
+      const d = data.val();
+      jadwal.innerHTML += `<tr>
+        <td>${d.namaPeminjam}</td>
+        <td>${d.lapangan}</td>
+        <td>${d.tanggal}</td>
+        <td>${d.jam}</td>
+      </tr>`;
+    });
+  }
+</script>
+
+</body>
+</html>
